@@ -13,4 +13,8 @@ A free, phone-friendly page for sharing what you posted on Instagram to TikTok, 
 
 There are no developer apps, accounts or servers. Your files and caption never leave your phone except to go to the apps you choose. On a computer, where browsers can't hand files to other apps, each button copies the caption and opens that site's upload page instead.
 
-Everything lives in `index.html`. The icons and `manifest.json` let you add it to your home screen.
+### Optional: caption auto-fill
+
+`worker/caption.js` is a small free Cloudflare Worker. Given a post link, it reads the caption from Instagram's public embed page, so Crosspost can fill in the caption box for you. Set it up from the page: tap **Set up auto-fill** under the link box. It only works for public posts, and Instagram may block it at times. When that happens, Crosspost tells you and you copy the caption by hand.
+
+Everything else lives in `index.html`. The icons and `manifest.json` let you add it to your home screen.
