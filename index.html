@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crosspost</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a1f%22/%3E%3Cpath d=%22M9 16h14M17 10l6 6-6 6%22 stroke=%22white%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<meta name="robots" content="noindex">
+</head>
+<body>
+<header class="top">
+  <div class="brand">Cross<span>post</span></div>
+  <nav>
+    <a href="#posts" data-view="posts">My posts</a>
+    <a href="#settings" data-view="settings">Settings</a>
+  </nav>
+  <div class="who" id="who"></div>
+</header>
+
+<main>
+  <!-- POSTS -->
+  <section id="view-posts" class="view">
+    <div class="intro">
+      <h1>Your Instagram posts</h1>
+      <p>Click a post, pick where it should go, and send it.</p>
+    </div>
+    <div id="postsMsg" class="msg"></div>
+    <div id="grid" class="grid"></div>
+    <div class="center"><button id="more" class="btn" hidden>Load more</button></div>
+
+    <h2 class="sec">Recently sent</h2>
+    <div id="history" class="history"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view" hidden>
+    <div class="intro">
+      <h1>Connect your accounts</h1>
+      <p>Everything here is free. Your keys are saved only in this browser — never on GitHub. You only need to set up the networks you want to use.</p>
+    </div>
+    <div id="settings" class="settings"></div>
+  </section>
+</main>
+
+<!-- POST PANEL -->
+<div id="scrim" class="scrim" hidden></div>
+<aside id="panel" class="panel" hidden>
+  <button class="close" id="closePanel" aria-label="Close">×</button>
+  <div class="panel-media" id="pMedia"></div>
+  <div class="panel-body">
+    <div class="meta" id="pMeta"></div>
+
+    <label for="pCaption">Caption</label>
+    <textarea id="pCaption"></textarea>
+    <div class="count" id="pCount"></div>
+
+    <label for="pShort">Short version <span class="muted">— used for X, Threads and Bluesky (optional)</span></label>
+    <textarea id="pShort" class="short" placeholder="Leave blank to use the caption above"></textarea>
+    <div class="count" id="pShortCount"></div>
+
+    <label>Post to</label>
+    <div class="nets" id="pNets"></div>
+
+    <div id="pOpts"></div>
+
+    <ul class="problems" id="pProblems"></ul>
+    <button class="btn primary" id="pGo">Post</button>
+    <div class="results" id="pResults"></div>
+  </div>
+</aside>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
