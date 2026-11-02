@@ -139,8 +139,8 @@
     <p class="howcopy">In Instagram, open your post → <b>⋯</b> → <b>Edit</b>, tap and hold the caption → <b>Select All</b> → <b>Copy</b>. Then come back and tap <b>Paste caption</b>. <button class="link" id="setUser" type="button"></button></p>
     <textarea id="caption" placeholder="Paste your Instagram caption here"></textarea>
     <div class="count" id="capCount"></div>
-    <label for="short">Short version <span class="muted">for X &amp; Bluesky (optional)</span></label>
-    <textarea id="short" class="short" placeholder="Leave blank to use the caption above"></textarea>
+    <label for="short">Short version for X</label>
+    <textarea id="short" class="short" placeholder="Written for you automatically when your caption is over 280 characters"></textarea>
     <div class="count" id="shortCount"></div>
   </section>
 
@@ -179,8 +179,6 @@ const NETS = [
     sub: 'Pick Threads in the menu', web: (t) => 'https://www.threads.net/intent/post?text=' + encodeURIComponent(t) },
   { id: 'facebook', name: 'Facebook',  color: '#1877f2', ab: 'f',
     sub: 'Pick Facebook in the menu', web: 'https://www.facebook.com/' },
-  { id: 'bluesky',  name: 'Bluesky',   color: '#1185fe', ab: 'bs', short: true, limit: 300,
-    sub: 'Pick Bluesky in the menu', web: (t) => 'https://bsky.app/intent/compose?text=' + encodeURIComponent(t) },
   { id: 'youtube',  name: 'YT Shorts', color: '#ff0000', ab: '▶', needs: 'video',
     sub: 'Pick YouTube in the menu', web: 'https://studio.youtube.com/' },
   { id: 'other',    name: 'Other app', color: '#6f6a60', ab: '…',
@@ -248,16 +246,87 @@ function renderMedia() {
 /* ---------- caption ---------- */
 const len = (s) => [...s].length;
 const caption = () => $('#caption').value.trim();
-const textFor = (n) => (n.short && $('#short').value.trim()) || caption();
+
+// X counts every link as 23 characters, including bare domains like example.com
+const LINK = /\b(?:https?:\/\/\S+|(?:[a-z0-9-]+\.)+(?:com|net|org|io|co|app|dev|me|ly|gg|tv|us|uk|ca|shop|store)\b(?:\/\S*)?)/gi;
+// …and every emoji as 2.
+const SEG = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter() : null;
+function xLen(t) {
+  const s = t.replace(LINK, 'x'.repeat(23));
+  if (!SEG) return len(s);
+  let n = 0;
+  for (const { segment } of SEG.segment(s)) n += /\p{Extended_Pictographic}/u.test(segment) ? 2 : 1;
+  return n;
+}
+
+function tidy(t) {
+  return t.replace(/[​‌‍⁣﻿]/g, '')
+    .replace(/([!?])\1+/g, '$1')           // "!!" -> "!"
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Shortens a caption to fit a limit: keeps whole paragraphs in order, skipping any that
+// don't fit, falls back to whole sentences and then words, and keeps up to 3 trailing hashtags.
+function shorten(text, limit, measure = xLen) {
+  let t = tidy(text);
+  if (measure(t) <= limit) return t;
+  let tags = [];
+  const tm = t.match(/(?:\s*#[^\s#]+)+\s*$/u);
+  if (tm && tm.index > 0) { tags = tm[0].trim().split(/\s+/); t = t.slice(0, tm.index).trim(); }
+  const paras = t.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const fits = (s) => measure(s) <= limit;
+  const out = [];
+  for (const p of paras) if (fits([...out, p].join('\n\n'))) out.push(p);
+  if (!out.length && paras.length) {
+    const first = paras[0].replace(/\n/g, ' ');
+    const sents = first.match(/[^.!?…]+[.!?…]+["”’')\]]*|[^.!?…]+$/g) || [first];
+    let acc = '';
+    for (const x of sents) { const c = (acc ? acc + ' ' : '') + x.trim(); if (fits(c)) acc = c; else break; }
+    if (!acc) {
+      for (const w of first.split(/\s+/)) { const c = (acc ? acc + ' ' : '') + w; if (fits(c + '…')) acc = c; else break; }
+      acc += '…';
+    }
+    out.push(acc);
+  }
+  let res = out.join('\n\n');
+  const keep = [];
+  for (const tag of tags.slice(0, 3)) if (fits(res + '\n\n' + [...keep, tag].join(' '))) keep.push(tag);
+  if (keep.length) res += '\n\n' + keep.join(' ');
+  return res;
+}
+
+let shortEdited = store.get('shortEdited', false);
+function autoShort() {
+  if (shortEdited) return;
+  const c = caption();
+  $('#short').value = c && xLen(c) > 280 ? shorten(c, 280) : '';
+}
+
+function textFor(n) {
+  if (n.short) return $('#short').value.trim() || caption();
+  if (n.limit && n.id === 'threads' && len(caption()) > n.limit) return shorten(caption(), n.limit, len);
+  return caption();
+}
+
 function renderCounts() {
+  autoShort();
   const c = $('#caption').value, s = $('#short').value;
-  const over = NETS.filter((n) => n.limit && !n.short && len(c) > n.limit).map((n) => `${n.name} max ${n.limit}`);
-  $('#capCount').innerHTML = c ? `${len(c)} characters${over.length ? ` · <span class="bad">${over.join(', ')}</span>` : ''}` : '';
-  const xLen = len(s.trim() || c.trim());
-  $('#shortCount').innerHTML = (s || c) ? `X: <span class="${xLen > 280 ? 'bad' : ''}">${xLen}/280</span> · Bluesky: <span class="${xLen > 300 ? 'bad' : ''}">${xLen}/300</span>` : '';
+  $('#capCount').innerHTML = c ? `${len(c)} characters${xLen(c.trim()) > 280 ? ' · too long for X, so a short version is below' : ''}` : '';
+  const x = xLen(s.trim() || c.trim());
+  $('#shortCount').innerHTML = (s || c)
+    ? `${s && !shortEdited ? 'Written automatically · ' : ''}X: <span class="${x > 280 ? 'bad' : ''}">${x}/280</span>${s && shortEdited ? ` · <button class="link" id="redoShort" type="button">Rewrite automatically</button>` : ''}`
+    : '';
+  const r = $('#redoShort'); if (r) r.onclick = () => { shortEdited = false; store.set('shortEdited', false); renderCounts(); };
   store.set('caption', c); store.set('short', s);
 }
-['#caption', '#short'].forEach((s) => $(s).addEventListener('input', () => { renderCounts(); }));
+$('#caption').addEventListener('input', renderCounts);
+$('#short').addEventListener('input', () => {
+  shortEdited = $('#short').value.trim() !== '';
+  store.set('shortEdited', shortEdited);
+  renderCounts();
+});
 
 /* ---------- caption auto-fill (your Cloudflare helper, see worker/caption.js) ---------- */
 const DEFAULT_HELPER = ''; // filled in once the helper is set up, so it works on every device
@@ -283,7 +352,7 @@ async function autoCaption(link) {
     if (seq !== fetchSeq) return;
     if (!r.ok || d.caption == null) throw new Error(d.error || `helper answered ${r.status}`);
     if (!d.caption) throw new Error('this post has no caption');
-    $('#caption').value = d.caption; renderCounts();
+    $('#caption').value = d.caption; shortEdited = false; store.set('shortEdited', false); renderCounts();
     renderAuto('ok');
     toast('Caption filled in from your post');
   } catch (e) {
@@ -393,7 +462,7 @@ $('#paste').onclick = async () => {
     toast('That’s the post link, not the caption — copy the caption from Edit', 3800);
     return;
   }
-  $('#caption').value = text.trim(); renderCounts();
+  $('#caption').value = text.trim(); shortEdited = false; store.set('shortEdited', false); renderCounts();
   toast('Caption pasted');
 };
 
@@ -452,7 +521,7 @@ function share(n) {
   if (files.length && canShareFiles(files)) {
     const data = { files };
     // Apps that accept text alongside media get the caption pre-filled too.
-    if (text && (n.id === 'x' || n.id === 'threads' || n.id === 'bluesky' || n.id === 'other')) {
+    if (text && (n.id === 'x' || n.id === 'threads' || n.id === 'other')) {
       try { if (navigator.canShare({ files, text })) data.text = text; } catch {}
     }
     navigator.share(data).then(() => {
@@ -489,13 +558,13 @@ function fallback(n, text) {
 
 /* ---------- reset & help ---------- */
 $('#reset').onclick = () => {
-  setFiles([]); $('#caption').value = ''; $('#short').value = ''; renderCounts(); $('#clearLink').click();
+  setFiles([]); $('#caption').value = ''; $('#short').value = ''; shortEdited = false; store.set('shortEdited', false); renderCounts(); $('#clearLink').click();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 $('#help').onclick = () => sheet(`<h3>How it works</h3>
   <p><b>1.</b> Optional: paste your Instagram post's link to see it here with its caption, ready to copy.</p>
   <p><b>2.</b> Choose the video or photos you posted on Instagram from your camera roll.</p>
-  <p><b>3.</b> Paste your caption. Add a shorter one for X and Bluesky if it's long.</p>
+  <p><b>3.</b> Paste your caption. If it's over 280 characters, a short version for X is written for you — edit it if you like.</p>
   <p><b>4.</b> Tap a network. The caption is copied and your phone's share menu opens with your media — pick that app, paste, and post. A ✓ marks the ones you've done.</p>
   <p>Free, no accounts, no logins here. Nothing is uploaded anywhere except to the apps you pick.</p>`);
 
