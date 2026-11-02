@@ -45,7 +45,7 @@ export default {
   },
 };
 
-export function shortcode(link) {
+function shortcode(link) {
   const m = String(link).trim().match(/instagram\.com\/(?:[A-Za-z0-9_.]+\/)?(?:p|reels?|tv)\/([A-Za-z0-9_-]+)/i);
   return m ? m[1] : null;
 }
@@ -63,7 +63,7 @@ async function fromPage(url) {
 }
 
 // Tries several places Instagram has kept the caption, newest first.
-export function extract(html) {
+function extract(html) {
   // 1. Caption JSON embedded in the page (sometimes escaped inside another JSON string)
   for (const src of [html, unescapeOnce(html)]) {
     const m = src.match(/"edge_media_to_caption"\s*:\s*\{\s*"edges"\s*:\s*\[\s*\{\s*"node"\s*:\s*\{\s*"text"\s*:\s*("(?:[^"\\]|\\.)*")/);
