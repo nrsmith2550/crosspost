@@ -60,6 +60,11 @@
   .net.na{opacity:.45}
   .reset{display:block;margin:12px auto 0}
 
+  .cap-actions{display:flex;gap:8px}
+  .mini{flex:1;display:block;text-align:center;font:inherit;font-weight:700;font-size:14.5px;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:inherit;text-decoration:none;cursor:pointer}
+  .mini.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .howcopy{font-size:13px;color:var(--muted);margin:8px 0 10px}
+  .howcopy .link{font-size:13px;padding:0}
   .tip{font-size:13.5px;color:var(--muted);margin:10px 0 0}
   .tip b{color:var(--ink)}
   details{font-size:14px}
@@ -101,6 +106,11 @@
   <!-- 2. CAPTION -->
   <section class="card">
     <p class="step">2 · Caption</p>
+    <div class="cap-actions">
+      <a class="mini" id="openIg" href="https://www.instagram.com/" target="_blank" rel="noopener">Open my Instagram</a>
+      <button class="mini primary" id="paste" type="button">Paste caption</button>
+    </div>
+    <p class="howcopy">In Instagram, open your post → <b>⋯</b> → <b>Edit</b>, tap and hold the caption → <b>Select All</b> → <b>Copy</b>. Then come back and tap <b>Paste caption</b>. <button class="link" id="setUser" type="button"></button></p>
     <textarea id="caption" placeholder="Paste your Instagram caption here"></textarea>
     <div class="count" id="capCount"></div>
     <label for="short">Short version <span class="muted">for X &amp; Bluesky (optional)</span></label>
@@ -223,6 +233,40 @@ function renderCounts() {
 }
 ['#caption', '#short'].forEach((s) => $(s).addEventListener('input', () => { renderCounts(); }));
 
+/* ---------- Instagram helpers ---------- */
+function renderIg() {
+  const u = store.get('igUser', '');
+  $('#openIg').href = u ? `https://www.instagram.com/${encodeURIComponent(u)}/` : 'https://www.instagram.com/';
+  $('#openIg').textContent = u ? `Open @${u}` : 'Open my Instagram';
+  $('#setUser').textContent = u ? 'Change username' : 'Add your username so this opens your profile';
+}
+$('#setUser').onclick = () => {
+  const m = sheet(`<h3>Your Instagram username</h3><p>So “Open my Instagram” goes straight to your profile.</p>
+    <input type="text" id="igUserIn" placeholder="yourname" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc(store.get('igUser', ''))}">
+    <button class="btn primary" data-save>Save</button>`);
+  const inp = m.querySelector('#igUserIn'); inp.focus();
+  m.querySelector('[data-save]').onclick = () => {
+    store.set('igUser', inp.value.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/.*$/, ''));
+    renderIg(); m.remove();
+  };
+};
+$('#paste').onclick = async () => {
+  let text = '';
+  try { text = await navigator.clipboard.readText(); } catch {}
+  if (!text) {
+    $('#caption').focus();
+    toast('Tap and hold in the caption box, then tap Paste', 3500);
+    return;
+  }
+  // Instagram sometimes copies the post link instead of the caption.
+  if (/^https?:\/\/(www\.)?instagram\.com\/\S+$/.test(text.trim())) {
+    toast('That’s the post link, not the caption — copy the caption from Edit', 3800);
+    return;
+  }
+  $('#caption').value = text.trim(); renderCounts();
+  toast('Caption pasted');
+};
+
 /* ---------- networks ---------- */
 function availability(n) {
   if (n.needs === 'video' && S.files.length && !hasVideo()) return 'Needs a video';
@@ -328,7 +372,7 @@ $('#help').onclick = () => sheet(`<h3>How it works</h3>
 $('#caption').value = store.get('caption', '');
 $('#short').value = store.get('short', '');
 S.done = new Set(store.get('done', []));
-renderMedia(); renderCounts(); renderNets();
+renderMedia(); renderCounts(); renderNets(); renderIg();
 </script>
 </body>
 </html>
