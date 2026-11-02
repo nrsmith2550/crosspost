@@ -2,74 +2,333 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Crosspost</title>
-<link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a1f%22/%3E%3Cpath d=%22M9 16h14M17 10l6 6-6 6%22 stroke=%22white%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#ff5a1f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Crosspost">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root{
+    --bg:#f5f2ec; --card:#fffdf9; --ink:#1b1a17; --muted:#6f6a60; --line:#e4ded2;
+    --accent:#ff5a1f; --ok:#1f8a4c; --err:#c4302b;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#141311; --card:#1d1c19; --ink:#f3efe7; --muted:#a39d91; --line:#2f2d28; --ok:#4cc27e; --err:#ff6b62; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none !important}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom))}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:28px;letter-spacing:-.02em;margin:0;font-weight:800}
+  h1 span{color:var(--accent)}
+  .link{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;padding:4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+  .step{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+
+  .pick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;min-height:150px;border:2px dashed var(--line);border-radius:14px;background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:center;padding:16px}
+  .pick strong{font-size:17px}
+  .pick small{color:var(--muted)}
+  .pick .plus{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:28px;line-height:1}
+  .thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+  .thumbs .t{position:relative;flex:0 0 auto}
+  .thumbs img,.thumbs video{height:150px;max-width:220px;border-radius:12px;object-fit:cover;background:#000;display:block}
+  .thumbs .x{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+  .media-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)}
+
+  label{display:block;font-weight:600;font-size:14px;margin:12px 0 6px}
+  label .muted{color:var(--muted);font-weight:400}
+  textarea,input[type=text]{width:100%;font:inherit;font-size:16px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none}
+  textarea{min-height:120px;resize:vertical}
+  textarea.short{min-height:70px}
+  textarea:focus,input:focus{border-color:var(--accent)}
+  .count{font-size:12px;color:var(--muted);text-align:right;margin-top:4px}
+  .count .bad{color:var(--err);font-weight:700}
+
+  .nets{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .net{position:relative;display:flex;align-items:center;gap:10px;padding:14px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:64px}
+  .net:active{transform:scale(.98)}
+  .net .ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex:0 0 36px}
+  .net .nm{font-weight:700;font-size:15px;line-height:1.2}
+  .net .sub{font-size:12px;color:var(--muted);line-height:1.25}
+  .net.done{border-color:var(--ok)}
+  .net.done::after{content:"✓";position:absolute;top:6px;right:9px;color:var(--ok);font-weight:800}
+  .net.na{opacity:.45}
+  .reset{display:block;margin:12px auto 0}
+
+  .tip{font-size:13.5px;color:var(--muted);margin:10px 0 0}
+  .tip b{color:var(--ink)}
+  details{font-size:14px}
+  details summary{cursor:pointer;font-weight:600}
+  details ol{padding-left:20px;margin:8px 0}
+  details li{margin-bottom:6px}
+
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;font-size:14.5px;z-index:9;max-width:92vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:8;display:flex;align-items:flex-end;justify-content:center}
+  .sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom))}
+  .sheet h3{margin:0 0 6px}
+  .sheet p{margin:6px 0;color:var(--muted);font-size:14.5px}
+  .btn{display:block;width:100%;font:inherit;font-weight:700;border-radius:12px;padding:13px;border:1px solid var(--line);background:var(--card);color:inherit;cursor:pointer;margin-top:10px;text-align:center;text-decoration:none}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
 </head>
 <body>
-<header class="top">
-  <div class="brand">Cross<span>post</span></div>
-  <nav>
-    <a href="#posts" data-view="posts">My posts</a>
-    <a href="#settings" data-view="settings">Settings</a>
-  </nav>
-  <div class="who" id="who"></div>
-</header>
+<div class="wrap">
+  <header>
+    <h1>Cross<span>post</span></h1>
+    <button class="link" id="help">How it works</button>
+  </header>
 
-<main>
-  <!-- POSTS -->
-  <section id="view-posts" class="view">
-    <div class="intro">
-      <h1>Your Instagram posts</h1>
-      <p>Click a post, pick where it should go, and send it.</p>
+  <!-- 1. MEDIA -->
+  <section class="card">
+    <p class="step">1 · Your video or photos</p>
+    <input type="file" id="file" accept="image/*,video/*" multiple hidden>
+    <button class="pick" id="pick" type="button">
+      <span class="plus">+</span>
+      <strong>Choose from your camera roll</strong>
+      <small>The same video or photos you posted on Instagram</small>
+    </button>
+    <div id="mediaBox" hidden>
+      <div class="thumbs" id="thumbs"></div>
+      <div class="media-row"><span id="mediaInfo"></span><button class="link" id="change" type="button">Change</button></div>
     </div>
-    <div id="postsMsg" class="msg"></div>
-    <div id="grid" class="grid"></div>
-    <div class="center"><button id="more" class="btn" hidden>Load more</button></div>
-
-    <h2 class="sec">Recently sent</h2>
-    <div id="history" class="history"></div>
   </section>
 
-  <!-- SETTINGS -->
-  <section id="view-settings" class="view" hidden>
-    <div class="intro">
-      <h1>Connect your accounts</h1>
-      <p>Everything here is free. Your keys are saved only in this browser — never on GitHub. You only need to set up the networks you want to use.</p>
-    </div>
-    <div id="settings" class="settings"></div>
+  <!-- 2. CAPTION -->
+  <section class="card">
+    <p class="step">2 · Caption</p>
+    <textarea id="caption" placeholder="Paste your Instagram caption here"></textarea>
+    <div class="count" id="capCount"></div>
+    <label for="short">Short version <span class="muted">for X &amp; Bluesky (optional)</span></label>
+    <textarea id="short" class="short" placeholder="Leave blank to use the caption above"></textarea>
+    <div class="count" id="shortCount"></div>
   </section>
-</main>
 
-<!-- POST PANEL -->
-<div id="scrim" class="scrim" hidden></div>
-<aside id="panel" class="panel" hidden>
-  <button class="close" id="closePanel" aria-label="Close">×</button>
-  <div class="panel-media" id="pMedia"></div>
-  <div class="panel-body">
-    <div class="meta" id="pMeta"></div>
+  <!-- 3. SHARE -->
+  <section class="card">
+    <p class="step">3 · Tap to share</p>
+    <div class="nets" id="nets"></div>
+    <p class="tip" id="shareTip"></p>
+    <button class="link reset" id="reset" type="button">Start a new post</button>
+  </section>
 
-    <label for="pCaption">Caption</label>
-    <textarea id="pCaption"></textarea>
-    <div class="count" id="pCount"></div>
+  <section class="card">
+    <details>
+      <summary>Tips</summary>
+      <ol>
+        <li><b>Don't have the video saved?</b> In Instagram, open your Reel → <b>⋯</b> → <b>Download</b> (available for your own Reels), or find it in your camera roll where you made it.</li>
+        <li><b>Facebook &amp; Threads automatically:</b> Instagram can post to them for you whenever you publish — in Instagram, Settings → <i>Sharing to other apps</i> / <i>Crossposting</i>.</li>
+        <li><b>Add Crosspost to your home screen</b> so it opens like an app: Safari → Share → <i>Add to Home Screen</i> (iPhone), or Chrome → ⋮ → <i>Add to Home screen</i> (Android).</li>
+        <li>Nothing you pick or type leaves your phone — this page has no server and no accounts.</li>
+      </ol>
+    </details>
+  </section>
+</div>
 
-    <label for="pShort">Short version <span class="muted">— used for X, Threads and Bluesky (optional)</span></label>
-    <textarea id="pShort" class="short" placeholder="Leave blank to use the caption above"></textarea>
-    <div class="count" id="pShortCount"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-    <label>Post to</label>
-    <div class="nets" id="pNets"></div>
+// Each network: which caption to use, its limit, what media it takes, and a fallback web page.
+const NETS = [
+  { id: 'tiktok',   name: 'TikTok',    color: '#111',    ab: 'TT', needs: 'media',
+    sub: 'Pick TikTok in the menu', web: 'https://www.tiktok.com/tiktokstudio/upload' },
+  { id: 'x',        name: 'X',         color: '#000',    ab: 'X',  short: true, limit: 280,
+    sub: 'Pick X in the menu', web: (t) => 'https://x.com/intent/post?text=' + encodeURIComponent(t) },
+  { id: 'threads',  name: 'Threads',   color: '#333',    ab: '@',  limit: 500,
+    sub: 'Pick Threads in the menu', web: (t) => 'https://www.threads.net/intent/post?text=' + encodeURIComponent(t) },
+  { id: 'facebook', name: 'Facebook',  color: '#1877f2', ab: 'f',
+    sub: 'Pick Facebook in the menu', web: 'https://www.facebook.com/' },
+  { id: 'bluesky',  name: 'Bluesky',   color: '#1185fe', ab: 'bs', short: true, limit: 300,
+    sub: 'Pick Bluesky in the menu', web: (t) => 'https://bsky.app/intent/compose?text=' + encodeURIComponent(t) },
+  { id: 'youtube',  name: 'YT Shorts', color: '#ff0000', ab: '▶', needs: 'video',
+    sub: 'Pick YouTube in the menu', web: 'https://studio.youtube.com/' },
+  { id: 'other',    name: 'Other app', color: '#6f6a60', ab: '…',
+    sub: 'LinkedIn, Pinterest, Snapchat…' },
+];
 
-    <div id="pOpts"></div>
+const S = { files: [], urls: [], done: new Set() };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('cp2:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('cp2:' + k, JSON.stringify(v)); } catch {} },
+};
 
-    <ul class="problems" id="pProblems"></ul>
-    <button class="btn primary" id="pGo">Post</button>
-    <div class="results" id="pResults"></div>
-  </div>
-</aside>
+/* ---------- capability check ---------- */
+const canShareFiles = (files) => {
+  try { return !!(navigator.canShare && files.length && navigator.canShare({ files })); } catch { return false; }
+};
 
-<script type="module" src="js/app.js"></script>
+/* ---------- toast & sheet ---------- */
+let toastTimer;
+function toast(msg, ms = 2600) {
+  document.querySelectorAll('.toast').forEach((t) => t.remove());
+  const d = document.createElement('div'); d.className = 'toast'; d.textContent = msg; document.body.appendChild(d);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => d.remove(), ms);
+}
+function sheet(html) {
+  const bg = document.createElement('div'); bg.className = 'sheet-bg';
+  bg.innerHTML = `<div class="sheet">${html}<button class="btn" data-close>Close</button></div>`;
+  bg.addEventListener('click', (e) => { if (e.target === bg || e.target.hasAttribute('data-close')) bg.remove(); });
+  document.body.appendChild(bg);
+  return bg;
+}
+
+/* ---------- media ---------- */
+$('#pick').onclick = $('#change').onclick = () => $('#file').click();
+$('#file').onchange = (e) => {
+  const picked = [...e.target.files];
+  if (!picked.length) return;
+  setFiles(picked);
+  e.target.value = '';
+};
+function setFiles(files) {
+  S.urls.forEach((u) => URL.revokeObjectURL(u));
+  S.files = files; S.urls = files.map((f) => URL.createObjectURL(f));
+  S.done.clear(); store.set('done', []);
+  renderMedia(); renderNets();
+}
+function removeFile(i) {
+  URL.revokeObjectURL(S.urls[i]);
+  S.files.splice(i, 1); S.urls.splice(i, 1);
+  renderMedia(); renderNets();
+}
+const hasVideo = () => S.files.some((f) => f.type.startsWith('video/'));
+function renderMedia() {
+  const has = S.files.length > 0;
+  $('#pick').hidden = has; $('#mediaBox').hidden = !has;
+  $('#thumbs').innerHTML = S.files.map((f, i) => `<div class="t">${f.type.startsWith('video/')
+    ? `<video src="${S.urls[i]}#t=0.1" muted playsinline preload="metadata"></video>`
+    : `<img src="${S.urls[i]}" alt="">`}<button class="x" data-i="${i}" aria-label="Remove">×</button></div>`).join('');
+  $('#thumbs').querySelectorAll('.x').forEach((b) => (b.onclick = () => removeFile(+b.dataset.i)));
+  const mb = S.files.reduce((a, f) => a + f.size, 0) / 1e6;
+  const v = S.files.filter((f) => f.type.startsWith('video/')).length, p = S.files.length - v;
+  $('#mediaInfo').textContent = [v && `${v} video${v > 1 ? 's' : ''}`, p && `${p} photo${p > 1 ? 's' : ''}`].filter(Boolean).join(' + ') + ` · ${mb.toFixed(1)} MB`;
+}
+
+/* ---------- caption ---------- */
+const len = (s) => [...s].length;
+const caption = () => $('#caption').value.trim();
+const textFor = (n) => (n.short && $('#short').value.trim()) || caption();
+function renderCounts() {
+  const c = $('#caption').value, s = $('#short').value;
+  const over = NETS.filter((n) => n.limit && !n.short && len(c) > n.limit).map((n) => `${n.name} max ${n.limit}`);
+  $('#capCount').innerHTML = c ? `${len(c)} characters${over.length ? ` · <span class="bad">${over.join(', ')}</span>` : ''}` : '';
+  const xLen = len(s.trim() || c.trim());
+  $('#shortCount').innerHTML = (s || c) ? `X: <span class="${xLen > 280 ? 'bad' : ''}">${xLen}/280</span> · Bluesky: <span class="${xLen > 300 ? 'bad' : ''}">${xLen}/300</span>` : '';
+  store.set('caption', c); store.set('short', s);
+}
+['#caption', '#short'].forEach((s) => $(s).addEventListener('input', () => { renderCounts(); }));
+
+/* ---------- networks ---------- */
+function availability(n) {
+  if (n.needs === 'video' && S.files.length && !hasVideo()) return 'Needs a video';
+  if (n.needs === 'media' && !S.files.length) return 'Choose a video or photos first';
+  return null;
+}
+function renderNets() {
+  const box = $('#nets'); box.innerHTML = '';
+  NETS.forEach((n) => {
+    const b = document.createElement('button');
+    const na = availability(n);
+    b.type = 'button';
+    b.className = 'net' + (S.done.has(n.id) ? ' done' : '') + (na ? ' na' : '');
+    b.innerHTML = `<span class="ico" style="background:${n.color}">${n.ab}</span><span><div class="nm">${n.name}</div><div class="sub">${esc(na || n.sub)}</div></span>`;
+    b.onclick = () => share(n);
+    box.appendChild(b);
+  });
+  $('#shareTip').innerHTML = canShareFiles(S.files.length ? S.files : [new File(['x'], 'x.txt', { type: 'text/plain' })])
+    ? 'Each button <b>copies the caption</b> and opens your phone’s share menu with your media attached. Choose the app, paste the caption, and post.'
+    : 'This browser can’t hand files to other apps. On your phone it works best — on a computer, each button copies the caption and opens that site so you can upload there.';
+}
+
+function markDone(id) { S.done.add(id); store.set('done', [...S.done]); renderNets(); }
+
+function copy(text) {
+  if (!text) return Promise.resolve(false);
+  try { return navigator.clipboard.writeText(text).then(() => true, () => fallbackCopy(text)); }
+  catch { return Promise.resolve(fallbackCopy(text)); }
+}
+function fallbackCopy(text) {
+  const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', '');
+  t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch {} t.remove(); return ok;
+}
+
+function share(n) {
+  const na = availability(n);
+  if (na) { toast(na); return; }
+  const text = textFor(n);
+  if (n.limit && len(text) > n.limit) {
+    toast(`${n.name} allows ${n.limit} characters — ${n.short ? 'write a short version above' : 'shorten the caption'}.`, 3500);
+    $(n.short ? '#short' : '#caption').focus();
+    return;
+  }
+  // YouTube & TikTok only take videos; send just the videos to them.
+  // TikTok takes a video OR photos, not both; YouTube only takes videos.
+  const videos = S.files.filter((f) => f.type.startsWith('video/'));
+  const files = n.needs === 'video' || (n.id === 'tiktok' && videos.length) ? videos : S.files;
+
+  // Both calls must start right here, inside the tap, or the phone will block them.
+  const copied = copy(text);
+
+  if (files.length && canShareFiles(files)) {
+    const data = { files };
+    // Apps that accept text alongside media get the caption pre-filled too.
+    if (text && (n.id === 'x' || n.id === 'threads' || n.id === 'bluesky' || n.id === 'other')) {
+      try { if (navigator.canShare({ files, text })) data.text = text; } catch {}
+    }
+    navigator.share(data).then(() => {
+      markDone(n.id);
+    }).catch((e) => {
+      if (e && e.name === 'AbortError') return; // closed the menu
+      fallback(n, text);
+    });
+    copied.then((ok) => toast(ok ? `Caption copied — choose ${n.id === 'other' ? 'an app' : n.name.replace('YT ', 'YouTube ')}, then paste it` : `Choose ${n.name}, then type or paste your caption`, 3800));
+    return;
+  }
+
+  // No media, or this browser can't share files.
+  if (!files.length && text && navigator.share && n.id !== 'tiktok' && n.id !== 'youtube') {
+    navigator.share({ text }).then(() => markDone(n.id)).catch((e) => { if (e?.name !== 'AbortError') fallback(n, text); });
+    return;
+  }
+  fallback(n, text);
+}
+
+function fallback(n, text) {
+  const url = typeof n.web === 'function' ? n.web(text) : n.web;
+  copy(text).then((ok) => {
+    const m = sheet(`<h3>${esc(n.name)}</h3>
+      <p>${ok ? 'Your caption is copied. ' : ''}${url ? `Open ${esc(n.name)}, upload your ${hasVideo() ? 'video' : S.files.length ? 'photos' : 'post'} there${typeof n.web === 'function' ? '' : ', and paste the caption'}.` : 'Open the app you want, upload your media and paste the caption.'}</p>
+      ${url ? `<a class="btn primary" href="${esc(url)}" target="_blank" rel="noopener" data-open>Open ${esc(n.name)}</a>` : ''}
+      <button class="btn" data-copy>Copy caption again</button>
+      <button class="btn" data-mark>Mark as posted</button>`);
+    m.querySelector('[data-copy]').onclick = () => copy(text).then((ok2) => toast(ok2 ? 'Caption copied' : 'Couldn’t copy — select the caption and copy it'));
+    m.querySelector('[data-mark]').onclick = () => { markDone(n.id); m.remove(); };
+    const o = m.querySelector('[data-open]'); if (o) o.addEventListener('click', () => markDone(n.id));
+  });
+}
+
+/* ---------- reset & help ---------- */
+$('#reset').onclick = () => {
+  setFiles([]); $('#caption').value = ''; $('#short').value = ''; renderCounts();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+$('#help').onclick = () => sheet(`<h3>How it works</h3>
+  <p><b>1.</b> Choose the video or photos you posted on Instagram from your camera roll.</p>
+  <p><b>2.</b> Paste your caption. Add a shorter one for X and Bluesky if it's long.</p>
+  <p><b>3.</b> Tap a network. The caption is copied and your phone's share menu opens with your media — pick that app, paste, and post. A ✓ marks the ones you've done.</p>
+  <p>Free, no accounts, no logins here. Nothing is uploaded anywhere except to the apps you pick.</p>`);
+
+/* ---------- start ---------- */
+$('#caption').value = store.get('caption', '');
+$('#short').value = store.get('short', '');
+S.done = new Set(store.get('done', []));
+renderMedia(); renderCounts(); renderNets();
+</script>
 </body>
 </html>
