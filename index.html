@@ -106,10 +106,10 @@
       <input type="url" id="postLink" placeholder="Paste the post link" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="url">
       <button class="mini primary" id="pasteLink" type="button">Paste link</button>
     </div>
-    <p class="howcopy" id="linkHelp">In Instagram, tap <b>Share</b> (paper plane) on your post → <b>Copy link</b>, then tap <b>Paste link</b>. Your post shows up here — tap and hold its caption to copy it, then tap <b>Paste caption</b> below.</p>
+    <p class="howcopy" id="linkHelp">In Instagram, tap <b>Share</b> (paper plane) on your post → <b>Copy link</b>, then tap <b>Paste link</b>. Your post shows up here. <b>Press and hold</b> a word in its caption, drag the handles to select it all, tap <b>Copy</b>, then tap <b>Paste caption</b> below.</p>
     <p class="howcopy" id="autoStatus"></p>
     <div id="embedBox" hidden>
-      <iframe id="embed" title="Your Instagram post" loading="lazy" allowtransparency="true" scrolling="yes"></iframe>
+      <iframe id="embed" title="Your Instagram post" loading="lazy" allowtransparency="true" scrolling="yes" sandbox="allow-scripts allow-same-origin" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       <div class="media-row"><span id="embedNote">Only public posts can be shown here.</span><button class="link" id="clearLink" type="button">Clear</button></div>
     </div>
   </section>
