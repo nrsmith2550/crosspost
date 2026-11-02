@@ -60,6 +60,12 @@
   .net.na{opacity:.45}
   .reset{display:block;margin:12px auto 0}
 
+  .opt{font-weight:400;text-transform:none;letter-spacing:0}
+  .link-row{display:flex;gap:8px}
+  .link-row input{flex:1;min-width:0;font:inherit;font-size:16px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none}
+  .link-row input:focus{border-color:var(--accent)}
+  .link-row .mini{flex:0 0 auto}
+  #embed{width:100%;height:620px;border:1px solid var(--line);border-radius:12px;background:#fff;display:block}
   .cap-actions{display:flex;gap:8px}
   .mini{flex:1;display:block;text-align:center;font:inherit;font-weight:700;font-size:14.5px;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:inherit;text-decoration:none;cursor:pointer}
   .mini.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
@@ -88,9 +94,23 @@
     <button class="link" id="help">How it works</button>
   </header>
 
-  <!-- 1. MEDIA -->
+  <!-- 1. POST PREVIEW -->
   <section class="card">
-    <p class="step">1 · Your video or photos</p>
+    <p class="step">1 · Your Instagram post <span class="opt">(optional)</span></p>
+    <div class="link-row">
+      <input type="url" id="postLink" placeholder="Paste the post link" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="url">
+      <button class="mini primary" id="pasteLink" type="button">Paste link</button>
+    </div>
+    <p class="howcopy" id="linkHelp">In Instagram, tap <b>Share</b> (paper plane) on your post → <b>Copy link</b>, then tap <b>Paste link</b>. Your post shows up here with its caption — tap and hold the caption to copy it.</p>
+    <div id="embedBox" hidden>
+      <iframe id="embed" title="Your Instagram post" loading="lazy" allowtransparency="true" scrolling="yes"></iframe>
+      <div class="media-row"><span id="embedNote">Only public posts can be shown here.</span><button class="link" id="clearLink" type="button">Clear</button></div>
+    </div>
+  </section>
+
+  <!-- 2. MEDIA -->
+  <section class="card">
+    <p class="step">2 · Your video or photos</p>
     <input type="file" id="file" accept="image/*,video/*" multiple hidden>
     <button class="pick" id="pick" type="button">
       <span class="plus">+</span>
@@ -105,7 +125,7 @@
 
   <!-- 2. CAPTION -->
   <section class="card">
-    <p class="step">2 · Caption</p>
+    <p class="step">3 · Caption</p>
     <div class="cap-actions">
       <a class="mini" id="openIg" href="https://www.instagram.com/" target="_blank" rel="noopener">Open my Instagram</a>
       <button class="mini primary" id="paste" type="button">Paste caption</button>
@@ -120,7 +140,7 @@
 
   <!-- 3. SHARE -->
   <section class="card">
-    <p class="step">3 · Tap to share</p>
+    <p class="step">4 · Tap to share</p>
     <div class="nets" id="nets"></div>
     <p class="tip" id="shareTip"></p>
     <button class="link reset" id="reset" type="button">Start a new post</button>
@@ -232,6 +252,37 @@ function renderCounts() {
   store.set('caption', c); store.set('short', s);
 }
 ['#caption', '#short'].forEach((s) => $(s).addEventListener('input', () => { renderCounts(); }));
+
+/* ---------- post preview (Instagram's official embed) ---------- */
+function shortcode(link) {
+  const m = String(link).trim().match(/instagram\.com\/(?:[A-Za-z0-9_.]+\/)?(p|reels?|tv)\/([A-Za-z0-9_-]+)/i);
+  return m ? m[2] : null;
+}
+function showPost(link, quiet) {
+  const code = shortcode(link);
+  if (!code) {
+    $('#embedBox').hidden = true;
+    if (!quiet && link.trim()) toast('That doesn’t look like an Instagram post link', 3200);
+    return false;
+  }
+  const src = `https://www.instagram.com/p/${code}/embed/captioned/`;
+  if ($('#embed').getAttribute('src') !== src) $('#embed').src = src;
+  $('#embedBox').hidden = false;
+  store.set('postLink', link.trim());
+  return true;
+}
+$('#postLink').addEventListener('change', (e) => showPost(e.target.value));
+$('#postLink').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); showPost(e.target.value); } });
+$('#pasteLink').onclick = async () => {
+  let text = '';
+  try { text = await navigator.clipboard.readText(); } catch {}
+  if (!text) { $('#postLink').focus(); toast('Tap and hold in the link box, then tap Paste', 3500); return; }
+  $('#postLink').value = text.trim();
+  if (showPost(text)) toast('Here’s your post — tap and hold the caption to copy it', 3800);
+};
+$('#clearLink').onclick = () => {
+  $('#postLink').value = ''; $('#embed').removeAttribute('src'); $('#embedBox').hidden = true; store.set('postLink', '');
+};
 
 /* ---------- Instagram helpers ---------- */
 function renderIg() {
@@ -359,13 +410,14 @@ function fallback(n, text) {
 
 /* ---------- reset & help ---------- */
 $('#reset').onclick = () => {
-  setFiles([]); $('#caption').value = ''; $('#short').value = ''; renderCounts();
+  setFiles([]); $('#caption').value = ''; $('#short').value = ''; renderCounts(); $('#clearLink').click();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 $('#help').onclick = () => sheet(`<h3>How it works</h3>
-  <p><b>1.</b> Choose the video or photos you posted on Instagram from your camera roll.</p>
-  <p><b>2.</b> Paste your caption. Add a shorter one for X and Bluesky if it's long.</p>
-  <p><b>3.</b> Tap a network. The caption is copied and your phone's share menu opens with your media — pick that app, paste, and post. A ✓ marks the ones you've done.</p>
+  <p><b>1.</b> Optional: paste your Instagram post's link to see it here with its caption, ready to copy.</p>
+  <p><b>2.</b> Choose the video or photos you posted on Instagram from your camera roll.</p>
+  <p><b>3.</b> Paste your caption. Add a shorter one for X and Bluesky if it's long.</p>
+  <p><b>4.</b> Tap a network. The caption is copied and your phone's share menu opens with your media — pick that app, paste, and post. A ✓ marks the ones you've done.</p>
   <p>Free, no accounts, no logins here. Nothing is uploaded anywhere except to the apps you pick.</p>`);
 
 /* ---------- start ---------- */
@@ -373,6 +425,8 @@ $('#caption').value = store.get('caption', '');
 $('#short').value = store.get('short', '');
 S.done = new Set(store.get('done', []));
 renderMedia(); renderCounts(); renderNets(); renderIg();
+const savedLink = store.get('postLink', '');
+if (savedLink) { $('#postLink').value = savedLink; showPost(savedLink, true); }
 </script>
 </body>
 </html>
