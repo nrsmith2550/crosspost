@@ -106,7 +106,7 @@
       <input type="url" id="postLink" placeholder="Paste the post link" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="url">
       <button class="mini primary" id="pasteLink" type="button">Paste link</button>
     </div>
-    <p class="howcopy" id="linkHelp">In Instagram, tap <b>Share</b> (paper plane) on your post → <b>Copy link</b>, then tap <b>Paste link</b>. Your post shows up here and its caption is filled in below.</p>
+    <p class="howcopy" id="linkHelp">In Instagram, tap <b>Share</b> (paper plane) on your post → <b>Copy link</b>, then tap <b>Paste link</b>. Your post shows up here — tap and hold its caption to copy it, then tap <b>Paste caption</b> below.</p>
     <p class="howcopy" id="autoStatus"></p>
     <div id="embedBox" hidden>
       <iframe id="embed" title="Your Instagram post" loading="lazy" allowtransparency="true" scrolling="yes"></iframe>
@@ -265,7 +265,7 @@ const helperUrl = () => (store.get('helper', '') || DEFAULT_HELPER).replace(/\/+
 let fetchSeq = 0;
 function renderAuto(state, msg) {
   const el = $('#autoStatus');
-  if (!helperUrl()) { el.innerHTML = `Want the caption filled in automatically? <button class="link" id="setupHelper" type="button">Set up auto-fill</button>`; }
+  if (!helperUrl()) { el.innerHTML = ''; }
   else if (state === 'loading') el.textContent = 'Getting the caption from Instagram…';
   else if (state === 'ok') el.innerHTML = `✓ Caption filled in from your post. <button class="link" id="setupHelper" type="button">Auto-fill settings</button>`;
   else if (state === 'err') el.innerHTML = `Couldn’t get the caption automatically (${esc(msg)}). Tap and hold the caption in the post below to copy it instead. <button class="link" id="setupHelper" type="button">Auto-fill settings</button>`;
