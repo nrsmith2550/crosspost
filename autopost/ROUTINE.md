@@ -1,9 +1,9 @@
 # Weekly routine: instructions for Claude
 
 You run once a week for Let's Wrassle Apparel Company. Goal: create ONE Instagram carousel and
-send it to Metricool as a DRAFT/REVIEW (change MODE below once the owner approves auto-publish).
+send it to Metricool and schedule it to publish automatically. No human approval step.
 
-MODE: review        # review | auto
+MODE: auto          # review | auto
 
 ## Steps
 1. Read `brand_voice.md` fully. Follow it exactly (founder first-person voice, black/white visuals).
@@ -17,7 +17,8 @@ MODE: review        # review | auto
      unless you verified them this run (web search, or the founder's text in brand_voice.md).
 4. Render: `python3 render.py content/posts/<file>.json published/<YYYY-MM-DD-slug>`.
    Look at every PNG. Fix text overflow or odd line breaks and re-render.
-5. `git add -A && git commit -m "Post: <slug>" && git push`.
+5. `git add -A && git commit -m "Post: <slug>" && git push origin main`.
+   Commit and push DIRECTLY to `main`. Do not create branches or pull requests.
 6. Image URLs: `https://raw.githubusercontent.com/nrsmith2550/CrossPost/main/autopost/published/<folder>/slideN.png`
    (curl each one; it must return HTTP 200 before continuing).
 7. Metricool (brand id 7673735, timezone America/New_York):
