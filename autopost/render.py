@@ -38,6 +38,8 @@ body{font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;font-weight:800
 .logoplate{background:#fff;border-radius:18px;padding:6px 14px;display:inline-flex}.logoplate img{height:64px;display:block}
 .logoimg{height:72px}.light .logoimg,.light .biglogo{mix-blend-mode:multiply}
 .biglogo{width:760px;margin-left:-40px;display:block}
+.bigplate{display:inline-block;align-self:flex-start;background:#fff;border-radius:28px;padding:34px 44px}.bigplate .biglogo{width:700px;margin:0}
+.light .bigplate{background:none;padding:0;border-radius:0}.light .bigplate .biglogo{width:760px;margin-left:-40px}
 .big{font-size:138px;line-height:1;text-transform:uppercase;letter-spacing:-1px;font-weight:900}
 .mid{font-size:84px;line-height:1.05;text-transform:uppercase;letter-spacing:-1px;font-weight:900}
 .kicker{font-size:56px;margin-bottom:24px;font-weight:700;opacity:.85}
@@ -131,7 +133,7 @@ def build_slides(post):
                       [p["headline"]] + p["body"]))
     # Closer: brand logo, mission, ONE call to action
     idx = len(s)
-    s.append((alt(idx), f"<img class='biglogo' src='logo.png'><div class='bar'></div>{bodies(closer['body'])}{cta_html(cta)}",
+    s.append((alt(idx), f"<span class='bigplate'><img class='biglogo' src='logo.png'></span><div class='bar'></div>{bodies(closer['body'])}{cta_html(cta)}",
               False, closer.get("photo"), closer["body"] + ([cta] if cta else [])))
     total = len(s)
     out = []
