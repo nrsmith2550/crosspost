@@ -4,6 +4,16 @@ A free, phone-friendly page for sharing what you posted on Instagram to TikTok, 
 
 **Open it:** https://nrsmith2550.github.io/crosspost/ (tip: add it to your home screen)
 
+## Ready to post (from autopost)
+
+The top of the page lists the posts the weekly autopost routine creates, newest first. Tap one and Crosspost loads:
+- its slides from `autopost/published/<post>/` as the photos to share
+- the Instagram caption from `autopost/social/instagram/<post>.md`
+- the TikTok caption from `autopost/social/tiktok/<post>.md`, plus the on-screen hook and talking script with copy buttons
+- the X post from `autopost/social/x/<post>.md`, plus the optional thread with a copy button for each part
+
+Posts without social files fall back to the caption and hashtags in `autopost/content/posts/<post>.json`, and the X version is shortened automatically. Each post remembers which networks you've posted it to. Crosspost only reads these files and never changes anything in `autopost/`.
+
 ## How it works
 
 1. Optional: paste your Instagram post's link. The post appears using Instagram's official embed, caption included, so you can copy the caption without leaving the page. This only works for public accounts.

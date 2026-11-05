@@ -65,6 +65,23 @@
   ol.setup code,.sheet code{font-size:12.5px;background:var(--line);padding:1px 5px;border-radius:5px;word-break:break-all}
   .sheet{max-height:88vh;overflow-y:auto}
   .sheet input{width:100%;font:inherit;font-size:16px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:6px}
+  .lib{display:flex;flex-direction:column;gap:8px}
+  .lib-item{display:flex;gap:12px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:14px;padding:8px;cursor:pointer}
+  .lib-item.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .lib-item img{width:56px;height:70px;object-fit:cover;border-radius:8px;background:var(--line);flex:0 0 56px}
+  .lib-item .t{font-weight:700;font-size:15px;line-height:1.25}
+  .lib-item .d{font-size:12.5px;color:var(--muted)}
+  .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+  .chip{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .chip.ok{color:var(--ok);border-color:currentColor}
+  .lib-more{align-self:center}
+  .extra{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
+  .extra summary{font-weight:700;font-size:14px}
+  .extra pre{white-space:pre-wrap;font:inherit;font-size:14px;margin:8px 0}
+  .extra .row{display:flex;gap:8px;align-items:flex-start;border-top:1px solid var(--line);padding:8px 0}
+  .extra .row:first-of-type{border-top:0}
+  .extra .row span{flex:1;font-size:14px;white-space:pre-wrap}
+  .extra .mini{flex:0 0 auto;padding:6px 10px;font-size:13px}
   .opt{font-weight:400;text-transform:none;letter-spacing:0}
   .link-row{display:flex;gap:8px}
   .link-row input{flex:1;min-width:0;font:inherit;font-size:16px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none}
@@ -98,6 +115,13 @@
     <h1>Cross<span>post</span></h1>
     <button class="link" id="help">How it works</button>
   </header>
+
+  <!-- READY-MADE POSTS (from autopost/) -->
+  <section class="card" id="libCard">
+    <p class="step">Ready to post <span class="opt">· from autopost</span></p>
+    <div class="lib" id="lib"><div class="howcopy">Loading your posts…</div></div>
+    <p class="howcopy" id="libMsg"></p>
+  </section>
 
   <!-- 1. POST PREVIEW -->
   <section class="card">
@@ -142,6 +166,9 @@
     <label for="short">Short version for X</label>
     <textarea id="short" class="short" placeholder="Written for you automatically when your caption is over 280 characters"></textarea>
     <div class="count" id="shortCount"></div>
+    <label for="ttCaption">TikTok caption <span class="muted">(optional)</span></label>
+    <textarea id="ttCaption" class="short" placeholder="Leave blank to use the caption above"></textarea>
+    <div id="extras"></div>
   </section>
 
   <!-- 3. SHARE -->
@@ -171,6 +198,8 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 // Each network: which caption to use, its limit, what media it takes, and a fallback web page.
 const NETS = [
+  { id: 'instagram', name: 'Instagram', color: '#d62976', ab: 'IG', needs: 'media',
+    sub: 'Pick Instagram in the menu', web: 'https://www.instagram.com/' },
   { id: 'tiktok',   name: 'TikTok',    color: '#111',    ab: 'TT', needs: 'media',
     sub: 'Pick TikTok in the menu', web: 'https://www.tiktok.com/tiktokstudio/upload' },
   { id: 'x',        name: 'X',         color: '#000',    ab: 'X',  short: true, limit: 280,
@@ -185,7 +214,7 @@ const NETS = [
     sub: 'LinkedIn, Pinterest, Snapchat…' },
 ];
 
-const S = { files: [], urls: [], done: new Set() };
+const S = { files: [], urls: [], done: new Set(), slug: null, posts: [] };
 const store = {
   get(k, d) { try { const v = localStorage.getItem('cp2:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('cp2:' + k, JSON.stringify(v)); } catch {} },
@@ -216,13 +245,15 @@ $('#pick').onclick = $('#change').onclick = () => $('#file').click();
 $('#file').onchange = (e) => {
   const picked = [...e.target.files];
   if (!picked.length) return;
+  if (S.slug) { S.slug = null; store.set('slug', null); renderLib(); }
   setFiles(picked);
   e.target.value = '';
 };
-function setFiles(files) {
+const doneKey = () => 'done:' + (S.slug || 'manual');
+function setFiles(files, keepDone) {
   S.urls.forEach((u) => URL.revokeObjectURL(u));
   S.files = files; S.urls = files.map((f) => URL.createObjectURL(f));
-  S.done.clear(); store.set('done', []);
+  if (!keepDone) { S.done.clear(); store.set(doneKey(), []); }
   renderMedia(); renderNets();
 }
 function removeFile(i) {
@@ -306,6 +337,7 @@ function autoShort() {
 
 function textFor(n) {
   if (n.short) return $('#short').value.trim() || caption();
+  if (n.id === 'tiktok') return $('#ttCaption').value.trim() || caption();
   if (n.limit && n.id === 'threads' && len(caption()) > n.limit) return shorten(caption(), n.limit, len);
   return caption();
 }
@@ -316,11 +348,12 @@ function renderCounts() {
   $('#capCount').innerHTML = c ? `${len(c)} characters${xLen(c.trim()) > 280 ? ' · too long for X, so a short version is below' : ''}` : '';
   const x = xLen(s.trim() || c.trim());
   $('#shortCount').innerHTML = (s || c)
-    ? `${s && !shortEdited ? 'Written automatically · ' : ''}X: <span class="${x > 280 ? 'bad' : ''}">${x}/280</span>${s && shortEdited ? ` · <button class="link" id="redoShort" type="button">Rewrite automatically</button>` : ''}`
+    ? `${s && S.fileX && s.trim() === S.fileX.trim() ? 'From autopost · ' : s && !shortEdited ? 'Written automatically · ' : ''}X: <span class="${x > 280 ? 'bad' : ''}">${x}/280</span>${s && shortEdited ? ` · <button class="link" id="redoShort" type="button">Rewrite automatically</button>` : ''}`
     : '';
   const r = $('#redoShort'); if (r) r.onclick = () => { shortEdited = false; store.set('shortEdited', false); renderCounts(); };
-  store.set('caption', c); store.set('short', s);
+  store.set('caption', c); store.set('short', s); store.set('ttCaption', $('#ttCaption').value);
 }
+$('#ttCaption').addEventListener('input', () => store.set('ttCaption', $('#ttCaption').value));
 $('#caption').addEventListener('input', renderCounts);
 $('#short').addEventListener('input', () => {
   shortEdited = $('#short').value.trim() !== '';
@@ -466,6 +499,162 @@ $('#paste').onclick = async () => {
   toast('Caption pasted');
 };
 
+/* ---------- ready-made posts from autopost/ (written by the weekly routine) ---------- */
+const REPO = 'nrsmith2550/crosspost', BRANCH = 'main';
+const RAW = (path) => `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${path}`;
+
+// Reads a repo file from this site (same GitHub Pages deploy), falling back to GitHub's raw copy.
+async function repoFetch(path, as = 'text') {
+  for (const url of [path + '?v=' + Date.now(), RAW(path)]) {
+    try { const r = await fetch(url, { cache: 'no-store' }); if (r.ok) return as === 'blob' ? await r.blob() : await r.text(); } catch {}
+  }
+  throw new Error(`couldn't load ${path}`);
+}
+
+async function listRepo() {
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status === 403 ? 'GitHub rate limit, try again in a few minutes' : `GitHub answered ${r.status}`);
+    const paths = (await r.json()).tree.map((t) => t.path);
+    store.set('repoTree', paths);
+    return paths;
+  } catch (e) {
+    const cached = store.get('repoTree', null);
+    if (cached) return cached;
+    throw e;
+  }
+}
+
+function buildIndex(paths) {
+  const by = {};
+  const get = (slug) => (by[slug] ||= { slug, social: {}, slides: [] });
+  for (const p of paths) {
+    let m;
+    if ((m = p.match(/^autopost\/content\/posts\/(.+)\.json$/))) get(m[1]).json = p;
+    else if ((m = p.match(/^autopost\/social\/(instagram|tiktok|x)\/(.+)\.md$/))) get(m[2]).social[m[1]] = p;
+    else if ((m = p.match(/^autopost\/published\/([^/]+)\/slide(\d+)\.png$/))) get(m[1]).slides.push([+m[2], p]);
+  }
+  return Object.values(by)
+    .filter((x) => x.slides.length && (x.json || Object.keys(x.social).length))
+    .map((x) => ({ ...x, slides: x.slides.sort((a, b) => a[0] - b[0]).map((s) => s[1]), date: (x.slug.match(/^\d{4}-\d{2}-\d{2}/) || [''])[0] }))
+    .sort((a, b) => b.slug.localeCompare(a.slug));
+}
+
+// Splits a social .md file into its "## " sections and status lines.
+function parseMd(md) {
+  const out = { title: '', sec: {}, meta: {} };
+  let cur = null;
+  for (const line of md.replace(/\r/g, '').split('\n')) {
+    let m;
+    if ((m = line.match(/^#\s+(.+)/)) && !line.startsWith('##')) { out.title = m[1].trim(); continue; }
+    if ((m = line.match(/^##\s+(.+?)\s*$/))) { cur = m[1].toLowerCase(); out.sec[cur] = []; continue; }
+    if ((m = line.match(/^(Status|Scheduled time|Metricool planner):\s*(.*)$/i))) { out.meta[m[1].toLowerCase()] = m[2].trim(); continue; }
+    if (cur) out.sec[cur].push(line);
+  }
+  for (const k in out.sec) out.sec[k] = out.sec[k].join('\n').trim();
+  out.find = (...names) => { for (const k in out.sec) if (names.some((n) => k.startsWith(n))) return out.sec[k]; return ''; };
+  return out;
+}
+const listItems = (text) => (text || '').split('\n').map((l) => l.replace(/^\s*(?:\d+[.)/]|[-*])\s*/, '').trim()).filter(Boolean);
+
+async function readPost(p) {
+  const post = { slug: p.slug, date: p.date, slides: p.slides, status: {} };
+  const md = {};
+  await Promise.all(Object.entries(p.social).map(async ([k, path]) => { try { md[k] = parseMd(await repoFetch(path)); } catch {} }));
+  let json = null;
+  if (p.json) { try { json = JSON.parse(await repoFetch(p.json)); } catch {} }
+  const tags = json?.hashtags?.join(' ') || '';
+  const jsonCaption = json ? [json.caption || '', tags].filter(Boolean).join('\n\n') : '';
+  post.topic = json?.topic || (md.instagram || md.tiktok || md.x)?.title.replace(/^[^:]+:\s*/, '') || p.slug;
+  post.instagram = md.instagram?.find('caption') || jsonCaption;
+  post.tiktok = md.tiktok?.find('caption') || '';
+  post.x = md.x?.find('post') || '';
+  post.hook = (md.tiktok?.find('on-screen hook') || '').replace(/^["“]|["”]$/g, '');
+  post.script = md.tiktok?.find('talking script') || '';
+  post.thread = listItems(md.x?.find('optional thread'));
+  for (const k of ['instagram', 'tiktok', 'x']) if (md[k]) post.status[k] = md[k].meta;
+  return post;
+}
+
+function statusChips(p) {
+  const done = new Set(store.get('done:' + p.slug, []));
+  const chip = (id, label) => {
+    const st = (p.status?.[id]?.status || '').toLowerCase();
+    const ok = done.has(id) || /scheduled|posted|published/.test(st) && !/not scheduled/.test(st);
+    const what = done.has(id) ? 'posted' : /scheduled in metricool/.test(st) ? 'scheduled' : '';
+    return `<span class="chip ${ok ? 'ok' : ''}">${ok ? '✓ ' : ''}${label}${what ? ' ' + what : ''}</span>`;
+  };
+  return chip('instagram', 'IG') + chip('tiktok', 'TikTok') + chip('x', 'X');
+}
+
+let libShowAll = false;
+function renderLib() {
+  const box = $('#lib');
+  if (!S.posts.length) return;
+  const list = libShowAll ? S.posts : S.posts.slice(0, 4);
+  const dup = (p) => S.posts.filter((q) => q.topic === p.topic).length > 1;
+  const slugName = (p) => p.slug.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/-/g, ' ');
+  box.innerHTML = list.map((p) => `<button class="lib-item ${p.slug === S.slug ? 'on' : ''}" type="button" data-slug="${esc(p.slug)}">
+      <img src="${esc(p.slides[0])}" alt="" loading="lazy" onerror="this.src='${esc(RAW(p.slides[0]))}'">
+      <span style="min-width:0"><div class="t">${esc(p.topic || p.slug)}</div>
+        <div class="d">${p.date ? new Date(p.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : ''} · ${p.slides.length} slides${dup(p) ? ` · <i>${esc(slugName(p))}</i>` : ''}</div>
+        <div class="chips">${statusChips(p)}</div></span></button>`).join('')
+    + (S.posts.length > 4 ? `<button class="link lib-more" id="libMore" type="button">${libShowAll ? 'Show fewer' : `Show all ${S.posts.length}`}</button>` : '');
+  box.querySelectorAll('.lib-item').forEach((b) => (b.onclick = () => loadPost(b.dataset.slug)));
+  const more = $('#libMore'); if (more) more.onclick = () => { libShowAll = !libShowAll; renderLib(); };
+}
+
+async function loadLibrary() {
+  try {
+    const idx = buildIndex(await listRepo());
+    if (!idx.length) { $('#lib').innerHTML = '<div class="howcopy">No ready-made posts yet. The weekly routine adds them to autopost/.</div>'; return; }
+    S.posts = await Promise.all(idx.map(async (p) => ({ ...p, ...(await readPost(p).catch(() => ({ topic: p.slug }))) })));
+    renderLib();
+    if (S.slug && S.posts.some((p) => p.slug === S.slug)) loadPost(S.slug, true);
+  } catch (e) {
+    $('#lib').innerHTML = `<div class="howcopy">Couldn’t load your ready-made posts (${esc(e.message)}). <button class="link" id="libRetry" type="button">Try again</button></div>`;
+    $('#libRetry').onclick = () => { $('#lib').innerHTML = '<div class="howcopy">Loading your posts…</div>'; loadLibrary(); };
+  }
+}
+
+async function loadPost(slug, quiet) {
+  const p = S.posts.find((x) => x.slug === slug);
+  if (!p) return;
+  S.slug = slug; store.set('slug', slug);
+  S.done = new Set(store.get(doneKey(), []));
+  renderLib();
+  // Text for each platform
+  $('#caption').value = p.instagram || '';
+  $('#short').value = p.x || ''; S.fileX = p.x || '';
+  shortEdited = !!p.x; store.set('shortEdited', shortEdited);
+  $('#ttCaption').value = p.tiktok || '';
+  renderCounts(); renderExtras(p);
+  // Slides as real image files, ready for the share menu
+  $('#libMsg').textContent = 'Loading slides…';
+  try {
+    const files = await Promise.all(p.slides.map(async (path, i) => new File([await repoFetch(path, 'blob')], `${slug}-slide${i + 1}.png`, { type: 'image/png' })));
+    if (S.slug !== slug) return;
+    setFiles(files, true);
+    $('#libMsg').textContent = '';
+    renderNets();
+    if (!quiet) { toast('Post loaded — tap a network below', 2600); $('#nets').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  } catch (e) {
+    $('#libMsg').textContent = `Couldn’t load the slides (${e.message}). Try again in a minute — GitHub may still be publishing them.`;
+  }
+}
+
+function renderExtras(p) {
+  const box = $('#extras');
+  const blocks = [];
+  if (p.hook || p.script) blocks.push(`<details class="extra"><summary>TikTok hook &amp; talking script</summary>
+      ${p.hook ? `<div class="row"><span><b>On-screen hook:</b> ${esc(p.hook)}</span><button class="mini" type="button" data-copy="${esc(p.hook)}">Copy</button></div>` : ''}
+      ${p.script ? `<div class="row"><span>${esc(p.script)}</span><button class="mini" type="button" data-copy="${esc(p.script)}">Copy</button></div>` : ''}</details>`);
+  if (p.thread?.length) blocks.push(`<details class="extra"><summary>X thread (optional, ${p.thread.length} posts)</summary>
+      ${p.thread.map((t, i) => `<div class="row"><span>${i + 1}/ ${esc(t)}</span><button class="mini" type="button" data-copy="${esc(t)}">Copy</button></div>`).join('')}</details>`);
+  box.innerHTML = blocks.join('');
+  box.querySelectorAll('[data-copy]').forEach((b) => (b.onclick = () => copy(b.dataset.copy).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy'))));
+}
+
 /* ---------- networks ---------- */
 function availability(n) {
   if (n.needs === 'video' && S.files.length && !hasVideo()) return 'Needs a video';
@@ -488,7 +677,7 @@ function renderNets() {
     : 'This browser can’t hand files to other apps. On your phone it works best — on a computer, each button copies the caption and opens that site so you can upload there.';
 }
 
-function markDone(id) { S.done.add(id); store.set('done', [...S.done]); renderNets(); }
+function markDone(id) { S.done.add(id); store.set(doneKey(), [...S.done]); renderNets(); renderLib(); }
 
 function copy(text) {
   if (!text) return Promise.resolve(false);
@@ -505,7 +694,7 @@ function share(n) {
   const na = availability(n);
   if (na) { toast(na); return; }
   const text = textFor(n);
-  if (n.limit && len(text) > n.limit) {
+  if (n.limit && (n.id === 'x' ? xLen(text) : len(text)) > n.limit) {
     toast(`${n.name} allows ${n.limit} characters — ${n.short ? 'write a short version above' : 'shorten the caption'}.`, 3500);
     $(n.short ? '#short' : '#caption').focus();
     return;
@@ -558,10 +747,13 @@ function fallback(n, text) {
 
 /* ---------- reset & help ---------- */
 $('#reset').onclick = () => {
+  S.slug = null; S.fileX = ''; store.set('slug', null); $('#ttCaption').value = ''; $('#extras').innerHTML = ''; renderLib();
   setFiles([]); $('#caption').value = ''; $('#short').value = ''; shortEdited = false; store.set('shortEdited', false); renderCounts(); $('#clearLink').click();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 $('#help').onclick = () => sheet(`<h3>How it works</h3>
+  <p><b>Ready to post:</b> tap one of your autopost posts at the top. Its slides and the caption for each platform load automatically — then just tap each network.</p>
+  <p><b>Posting something else?</b></p>
   <p><b>1.</b> Optional: paste your Instagram post's link to see it here with its caption, ready to copy.</p>
   <p><b>2.</b> Choose the video or photos you posted on Instagram from your camera roll.</p>
   <p><b>3.</b> Paste your caption. If it's over 280 characters, a short version for X is written for you — edit it if you like.</p>
@@ -571,8 +763,11 @@ $('#help').onclick = () => sheet(`<h3>How it works</h3>
 /* ---------- start ---------- */
 $('#caption').value = store.get('caption', '');
 $('#short').value = store.get('short', '');
-S.done = new Set(store.get('done', []));
+$('#ttCaption').value = store.get('ttCaption', '');
+S.slug = store.get('slug', null);
+S.done = new Set(store.get(doneKey(), []));
 renderMedia(); renderCounts(); renderNets(); renderIg();
+loadLibrary();
 const savedLink = store.get('postLink', '');
 if (savedLink) { $('#postLink').value = savedLink; showPost(savedLink, true); }
 renderAuto();
