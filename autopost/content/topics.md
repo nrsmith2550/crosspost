@@ -1,6 +1,6 @@
 # Topic queue (the weekly routine takes the first unchecked topic, then checks it off)
 
-- [ ] Not where you start: underdog story (re-do; prior post deleted for wrong caption; no founder bio)
+- [x] Not where you start: underdog story (re-done 2026-11-05, original copy)
 - [x] Practice gear and showing up ready (posted/scheduled 2026-11-06)
 - [ ] The people you meet along the way: teammates and coaches
 - [ ] Wrestling parents: the unsung grind (rides, early mornings, long tournament days)
