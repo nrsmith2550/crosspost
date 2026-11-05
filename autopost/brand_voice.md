@@ -47,7 +47,7 @@ It's not where you start, or even where you finish. It's the work, the grind, an
 - Logo: black script "Let's" + white "WRASSLE" in a black box. Source: https://dhgf5mcbrms62.cloudfront.net/118339778/global/JCyM2rn-1200x1200.png (cropped copy in instagram_visual/src/logo.png).
 - Headlines: heavy geometric sans, uppercase (Avenir Next Black); body: clean sans (site uses Inter).
 - Highlight key words with a solid white block (dark slides) or black block (light slides), echoing the logo box.
-- Layout: alternate charcoal and off-white slides, logo top-left, letswrassleapparel.com in the footer.
+- Layout varies week to week by `style` (bold, poster, light, checklist); see visual_research.md. Always: logo top-left (large on the last slide), letswrassleapparel.com in the footer, black/white palette.
 - Instagram size: 1080x1350 (4:5). Slide source: instagram_visual/src/build.py.
 
 ## Notes

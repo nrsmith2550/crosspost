@@ -9,8 +9,15 @@ MODE: auto          # review | auto
 1. Read `brand_voice.md` fully. Follow it exactly (founder first-person voice, black/white visuals).
 2. Open `content/topics.md`; take the first unchecked topic. If none remain, propose 8 new
    topics in that file and stop.
-3. Write `content/posts/YYYY-MM-DD-<slug>.json` using the schema of
-   `content/posts/2026-11-06-practice-gear.json` (cover, 1 to 3 points, closer, caption, hashtags).
+3. Choose this week's visual style (see `visual_research.md`, "Weekly rotation" and "Learning
+   loop"): first pull recent Instagram post performance from Metricool and append it to
+   `content/style_performance.md`; then pick a `style` (bold | poster | light | checklist) NOT used
+   in the last 2 posts, matched to the topic. Every 4th post is a product/catalog spotlight with a
+   real `photo` from letswrassleapparel.com (verify product names and any price on the site this
+   run). Add a `cta` (one call to action: save / tag / send / shop).
+   Then write `content/posts/YYYY-MM-DD-<slug>.json` using the schema in the docstring of
+   `render.py` (style, cover, points or list, closer, cta, caption, hashtags). Cover headline 8
+   words or fewer, 40 words per slide or fewer, slide 2 must stand alone.
    - Highlight 1 to 2 key words per headline with [[double brackets]].
    - Caption ends with the CTA line and the "Shoot for the stars..." sign-off.
    - Do NOT state NFHS/NCAA rules, stats, product details, prices, dates or founder biography
@@ -33,4 +40,7 @@ MODE: auto          # review | auto
 ## Never
 - Publish anything that makes an unverified factual claim.
 - Re-use a topic already checked off.
-- Change brand colors, logo or voice.
+- Change brand colors, logo or voice. (Visual variety comes from `style`, layout and photos,
+  not from new colors.)
+- Use the same style three posts in a row.
+- Use a photo you don't have the right to use. Only Nate's site/product images or his own photos.
